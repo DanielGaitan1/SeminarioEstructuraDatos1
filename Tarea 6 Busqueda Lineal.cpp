@@ -2,7 +2,7 @@
 #include <string>
 
 using namespace std;
-const int TAM=5;
+const int TAM = 5;
 
 class persona {
 private:
@@ -13,9 +13,12 @@ private:
 
 public:
     persona();
-    void operator=(persona& x);
     persona(string n, string c, int m, float p);
-    friend std::ostream& operator<<(std::ostream&, persona&);
+    void operator=(const persona& x);
+    string obtenerNombre() const {
+        return nombre;
+    }
+    friend std::ostream& operator<<(std::ostream&, const persona&);
     friend std::istream& operator>>(std::istream&, persona&);
 };
 
@@ -31,9 +34,11 @@ public:
     bool vacia() const;
     bool llena() const;
     int ultimo() const;
-    friend std::ostream& operator<<(std::ostream & o, Cola& L);
+    int buscar(string nombre);
+    friend std::ostream& operator<<(std::ostream& o, Cola& L);
     void enqueue(persona& elem);
-    persona& dequeue();
+    persona dequeue();
+    void buscarSolicitud();
 };
 
 persona::persona() {
@@ -45,14 +50,14 @@ persona::persona() {
 
 persona::persona(string n, string c, int m, float p) : nombre(n), carrera(c), materias(m), promedio(p) {}
 
-void persona::operator=(persona& x) {
+void persona::operator=(const persona& x) {
     nombre = x.nombre;
     carrera = x.carrera;
     materias = x.materias;
     promedio = x.promedio;
 }
 
-std::ostream& operator<<(std::ostream& o, persona& p) {
+std::ostream& operator<<(std::ostream& o, const persona& p) {
     o << "nombre: " << p.nombre << "\t carrera: " << p.carrera << "\t materias: " << p.materias << "\t promedio: " << p.promedio << endl;
     return o;
 }
@@ -61,18 +66,15 @@ std::istream& operator>>(std::istream& o, persona& p) {
     std::cout << "\nInserta nombre: ";
     o >> p.nombre;
     std::cout << "\nInserta carrera: ";
-    std::cin.ignore();
+    o.ignore();
     o >> p.carrera;
     std::cout << "\nInserta la cantidad de materias que se aprobaron: ";
-    std::cin.ignore();
     o >> p.materias;
     std::cout << "\nInserta promedio general: ";
-    std::cin.ignore();
     o >> p.promedio;
 
     return o;
 }
-
 
 bool Cola::vacia() const {
     return (ult == -1);
@@ -86,7 +88,7 @@ int Cola::ultimo() const {
     return ult;
 }
 
-std::ostream& operator<<(std::ostream & o, Cola& L) {
+std::ostream& operator<<(std::ostream& o, Cola& L) {
     int i = 0;
     std::cout << "\n";
     while (i <= L.ultimo()) {
@@ -96,17 +98,27 @@ std::ostream& operator<<(std::ostream & o, Cola& L) {
     return o;
 }
 
-void Cola::enqueue(persona& elem) {
-    inserta(elem, 0);
+int Cola::buscar(string nombreBuscado) {
+    for (int i = 0; i <= ult; ++i) {
+        if (datos[i].obtenerNombre() == nombreBuscado) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-persona& Cola::dequeue() {
+void Cola::enqueue(persona& elem) {
+    inserta(elem, ult + 1); // Insertar al final de la cola
+}
+
+persona Cola::dequeue() {
     if (vacia()) {
         std::cout << "\nLa cola está vacía" << std::endl;
-    } else {
-        ult--;
-        return datos[ult + 1];
+
     }
+    persona temp = datos[0];
+    elimina(0);
+    return temp;
 }
 
 bool Cola::elimina(int pos) {
@@ -114,10 +126,8 @@ bool Cola::elimina(int pos) {
         std::cout << "\nError de eliminación";
         return true;
     }
-    int i = pos;
-    while (i < ult) {
+    for (int i = pos; i < ult; i++) {
         datos[i] = datos[i + 1];
-        i++;
     }
     ult--;
     return false;
@@ -125,17 +135,28 @@ bool Cola::elimina(int pos) {
 
 int Cola::inserta(persona& elem, int pos) {
     if (llena() || pos < 0 || pos > ult + 1) {
-        std::cout << "\n\t La Cola esta llena, no se guardó la solicitud"<<endl;
+        std::cout << "\n\t La Cola está llena, no se guardó la solicitud" << endl;
         return 0;
     }
-    int i = ult + 1;
-    while (i > pos) {
+    for (int i = ult + 1; i > pos; i--) {
         datos[i] = datos[i - 1];
-        i--;
     }
     datos[pos] = elem;
     ult++;
     return 1;
+}
+
+void Cola::buscarSolicitud() {
+    string nombre;
+    cout << "\n Ingrese el nombre del alumno para buscar la solicitud: ";
+    cin >> nombre;
+    int posicion = buscar(nombre);
+    if (posicion != -1) {
+        cout << "\n La solicitud se encuentra en la posicion " << posicion + 1 << " de la cola." << endl;
+        cout << "Cantidad de constancias a elaborar antes de esta solicitud: " << posicion << endl;
+    } else {
+        cout << "\n La solicitud de " << nombre << " no se encuentra en la cola. Debe dar de alta una solicitud." << endl;
+    }
 }
 
 int main() {
@@ -143,41 +164,43 @@ int main() {
     int opcion;
     persona x;
 
-     do {
+    do {
         cout << "<><><><><><><><><><><><><><><><><><>" << endl;
         cout << "\t Menu\n" << endl;
         cout << "1. Dar de alta solicitud" << endl;
         cout << "2. Elaborar constancia" << endl;
-        cout << "3. Salir\n" << endl;
+        cout << "3. Buscar solicitud" << endl;
+        cout << "4. Salir\n" << endl;
 
         cin >> opcion;
 
         switch (opcion) {
             case 1:
-                cin>>x;
+                cin >> x;
                 MiCola.enqueue(x);
                 break;
 
             case 2:
-                if(!MiCola.vacia()){
-                    cout<<MiCola.dequeue();
+                if (!MiCola.vacia()) {
+                    cout << MiCola.dequeue();
                 } else {
-                    cout<<"No hay elementos en la cola."<<endl;
+                    cout << "No hay elementos en la cola." << endl;
                 }
                 break;
-            case 3:
 
+            case 3:
+                MiCola.buscarSolicitud();
+                break;
+
+            case 4:
+                cout << "Saliendo..." << endl;
                 break;
 
             default:
-                cout << "Opcion no valida. Por favor, elija una opción valida." << endl;
+                cout << "Opcion no valida. Por favor, elija una opcion valida." << endl;
                 break;
         }
-    }
-
-     while (opcion != 3);
+    } while (opcion != 4);
 
     return 0;
 }
-
-
